@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
 
   # PostgreSQL database
@@ -13,7 +11,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Persist database data between container restarts
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cloudops_user -d cloudops"]
@@ -34,11 +31,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend/src:/app/src
-    command: >
-      sh -c "npm install nodemon --save-dev &&
-             npx nodemon src/index.js"
 
   # React frontend
   frontend:

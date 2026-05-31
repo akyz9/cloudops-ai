@@ -3,6 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const db = require('./db');
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const servicesRoutes = require('./routes/services');
+const incidentsRoutes = require('./routes/incidents');
+const logsRoutes = require('./routes/logs');
+const alertsRoutes = require('./routes/alerts');
+const deploymentsRoutes = require('./routes/deployments');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 
-// CORS — allows the React frontend to call this API
+// CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? process.env.FRONTEND_URL
@@ -26,19 +35,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined'));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    version: process.env.npm_package_version || '1.0.0'
-  });
+app.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      version: process.env.npm_package_version || '1.0.0',
+      database: 'connected'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: error.message
+    });
+  }
 });
 
-// API routes — we'll add these in Step 2
-app.use('/api/v1', (req, res) => {
-  res.status(200).json({ message: 'CloudOps AI API' });
-});
+// API routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/services', servicesRoutes);
+app.use('/api/v1/incidents', incidentsRoutes);
+app.use('/api/v1/logs', logsRoutes);
+app.use('/api/v1/alerts', alertsRoutes);
+app.use('/api/v1/deployments', deploymentsRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -48,7 +71,7 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler — always the last middleware
+// Global error handler
 app.use((err, req, res, next) => {
   console.error({
     message: err.message,
