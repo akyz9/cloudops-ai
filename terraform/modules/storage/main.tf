@@ -41,16 +41,31 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 
 # CloudFront distribution
 resource "aws_cloudfront_distribution" "frontend" {
+  # S3 origin for frontend
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
     origin_id                = "S3-${aws_s3_bucket.frontend.id}"
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
+  # EC2 origin for backend API
+  origin {
+    domain_name = var.ec2_public_dns
+    origin_id   = "EC2-Backend"
+
+    custom_origin_config {
+      http_port              = 3001
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
 
+  # Default cache behaviour — serves frontend from S3
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
@@ -69,7 +84,48 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl                = 86400
   }
 
-  # Handle React Router — redirect 404s to index.html
+  # API cache behaviour — proxies /api/* to EC2
+  ordered_cache_behavior {
+    path_pattern     = "/api/*"
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "EC2-Backend"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["Origin", "Authorization", "Content-Type"]
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  # Health check behaviour
+  ordered_cache_behavior {
+    path_pattern     = "/health"
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "EC2-Backend"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+  }
+
+  # Handle React Router
   custom_error_response {
     error_code         = 404
     response_code      = 200

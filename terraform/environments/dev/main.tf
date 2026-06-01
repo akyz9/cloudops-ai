@@ -40,14 +40,6 @@ module "networking" {
   public_subnet_cidrs = var.public_subnet_cidrs
 }
 
-module "storage" {
-  source = "../../modules/storage"
-
-  project_name = var.project_name
-  environment  = var.environment
-  account_id   = data.aws_caller_identity.current.account_id
-}
-
 module "compute" {
   source = "../../modules/compute"
 
@@ -63,6 +55,15 @@ module "compute" {
   jwt_secret        = var.jwt_secret
   anthropic_api_key = var.anthropic_api_key
   aws_region        = var.aws_region
+}
+
+module "storage" {
+  source = "../../modules/storage"
+
+  project_name   = var.project_name
+  environment    = var.environment
+  account_id     = data.aws_caller_identity.current.account_id
+  ec2_public_dns = module.compute.ec2_public_dns
 }
 
 module "monitoring" {
