@@ -1,23 +1,94 @@
-const { Pool } = require('pg');
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const db = require('./db');
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+// Import routes
+const authRoutes = require('./routes/auth');
+const servicesRoutes = require('./routes/services');
+const incidentsRoutes = require('./routes/incidents');
+const logsRoutes = require('./routes/logs');
+const alertsRoutes = require('./routes/alerts');
+const deploymentsRoutes = require('./routes/deployments');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Security middleware
+app.use(helmet());
+
+// CORS
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://d10boh2hido84x.cloudfront.net', process.env.FRONTEND_URL]
+    : 'http://localhost:3000',
+  credentials: true
+}));
+
+// Request parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// HTTP request logging
+app.use(morgan('combined'));
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      version: process.env.npm_package_version || '1.0.0',
+      database: 'connected'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: error.message
+    });
+  }
 });
 
-// Test the connection
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
+// API routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/services', servicesRoutes);
+app.use('/api/v1/incidents', incidentsRoutes);
+app.use('/api/v1/logs', logsRoutes);
+app.use('/api/v1/alerts', alertsRoutes);
+app.use('/api/v1/deployments', deploymentsRoutes);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} does not exist`
+  });
 });
 
-pool.on('error', (err) => {
-  console.error('❌ Database connection error:', err.message);
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    timestamp: new Date().toISOString()
+  });
+
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  getClient: () => pool.connect(),
-};
+app.listen(PORT, () => {
+  console.log(`CloudOps AI Backend running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+});
+
+module.exports = app;

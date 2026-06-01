@@ -81,6 +81,7 @@ resource "aws_instance" "backend" {
   subnet_id              = var.public_subnet_id
   vpc_security_group_ids = [var.security_group_id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
+  key_name               = aws_key_pair.backend.key_name
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
     project_name      = var.project_name
@@ -97,4 +98,10 @@ resource "aws_instance" "backend" {
   tags = {
     Name = "${var.project_name}-${var.environment}-backend"
   }
+}
+
+# Key pair for SSH access
+resource "aws_key_pair" "backend" {
+  key_name   = "${var.project_name}-${var.environment}-key"
+  public_key = file("~/.ssh/cloudops-ai.pub")
 }

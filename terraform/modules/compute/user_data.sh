@@ -4,14 +4,17 @@ set -e
 # Update system
 yum update -y
 
+# Install Node.js 18
+curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+yum install -y nodejs
+
 # Install Docker
 yum install -y docker
 systemctl start docker
 systemctl enable docker
 
-# Install Docker Compose
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+# Install git
+yum install -y git
 
 # Install CloudWatch agent
 yum install -y amazon-cloudwatch-agent
@@ -21,7 +24,7 @@ mkdir -p /app
 cd /app
 
 # Create .env file
-cat > /app/.env << EOF
+cat > /app/.env << 'ENVEOF'
 NODE_ENV=production
 PORT=3001
 DB_HOST=${db_host}
@@ -33,48 +36,52 @@ JWT_SECRET=${jwt_secret}
 JWT_EXPIRES_IN=24h
 ANTHROPIC_API_KEY=${anthropic_api_key}
 AWS_REGION=${aws_region}
-EOF
-
-# Create docker-compose for production
-cat > /app/docker-compose.yml << EOF
-services:
-  backend:
-    image: node:18-alpine
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-    ports:
-      - "3001:3001"
-    env_file:
-      - .env
-    command: node src/index.js
-    restart: always
-EOF
+ENVEOF
 
 # Pull latest code from GitHub
-yum install -y git
 git clone https://github.com/akyz9/cloudops-ai.git /app/repo
 
 # Copy backend files
 cp -r /app/repo/backend /app/backend
+cp /app/.env /app/backend/.env
 
 # Install dependencies
 cd /app/backend
 npm install --omit=dev
 
-# Start the application
-cd /app
-docker-compose up -d
+# Create systemd service to keep the app running
+cat > /etc/systemd/system/cloudops-backend.service << 'SERVICEEOF'
+[Unit]
+Description=CloudOps AI Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/app/backend
+EnvironmentFile=/app/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF
+
+# Start the service
+systemctl daemon-reload
+systemctl enable cloudops-backend
+systemctl start cloudops-backend
 
 # Configure CloudWatch agent
-cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << EOF
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'CWEOF'
 {
   "logs": {
     "logs_collected": {
       "files": {
         "collect_list": [
           {
-            "file_path": "/app/logs/*.log",
+            "file_path": "/var/log/cloudops/*.log",
             "log_group_name": "/cloudops-ai/${environment}",
             "log_stream_name": "{instance_id}/app"
           }
@@ -83,8 +90,9 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << EOF
     }
   }
 }
-EOF
+CWEOF
 
-# Start CloudWatch agent
 systemctl start amazon-cloudwatch-agent
 systemctl enable amazon-cloudwatch-agent
+
+echo "CloudOps AI backend setup complete"
