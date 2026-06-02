@@ -12,6 +12,7 @@ const incidentsRoutes = require('./routes/incidents');
 const logsRoutes = require('./routes/logs');
 const alertsRoutes = require('./routes/alerts');
 const deploymentsRoutes = require('./routes/deployments');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,7 +23,7 @@ app.use(helmet());
 // CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
+    ? ['https://d10boh2hido84x.cloudfront.net', process.env.FRONTEND_URL]
     : 'http://localhost:3000',
   credentials: true
 }));
@@ -62,6 +63,7 @@ app.use('/api/v1/incidents', incidentsRoutes);
 app.use('/api/v1/logs', logsRoutes);
 app.use('/api/v1/alerts', alertsRoutes);
 app.use('/api/v1/deployments', deploymentsRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 // 404 handler
 app.use((req, res) => {

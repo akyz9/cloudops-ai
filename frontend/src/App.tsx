@@ -10,6 +10,7 @@ import Alerts from './pages/Alerts';
 import Logs from './pages/Logs';
 import Deployments from './pages/Deployments';
 import Simulator from './pages/Simulator';
+import AIAssistant from './pages/AIAssistant';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ const App: React.FC = () => {
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/deployments" element={<Deployments />} />
                 <Route path="/simulator" element={<Simulator />} />
+                <Route path="/ai" element={<AIAssistant />} />
               </Routes>
             </main>
           </div>

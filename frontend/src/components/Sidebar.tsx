@@ -9,6 +9,7 @@ const navigation = [
   { name: 'Logs', path: '/logs', icon: '📋' },
   { name: 'Deployments', path: '/deployments', icon: '🚀' },
   { name: 'Simulator', path: '/simulator', icon: '⚡' },
+  { name: 'AI Assistant', path: '/ai', icon: '🤖' },
 ];
 
 const Sidebar: React.FC = () => {
