@@ -9,7 +9,10 @@ const Services: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Loading services...</div>
+        <div className="flex items-center gap-3 text-gray-400">
+          <div className="w-5 h-5 border-2 border-gray-600 border-t-blue-400 rounded-full animate-spin"></div>
+          Loading services...
+        </div>
       </div>
     );
   }
@@ -17,7 +20,10 @@ const Services: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-red-400">Failed to load services</div>
+        <div className="text-center">
+          <p className="text-2xl mb-2">⚠️</p>
+          <p className="text-red-400">Failed to load services</p>
+        </div>
       </div>
     );
   }
@@ -27,32 +33,34 @@ const Services: React.FC = () => {
   const outage = services.filter((s: Service) => s.status === 'outage').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-white">Services</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold text-white">Services</h1>
         <p className="text-gray-400 text-sm mt-1">Monitor the health of all your services</p>
       </div>
 
-      <div className="flex gap-4">
-        <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2 flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-          <span className="text-green-400 text-sm">{operational} Operational</span>
+      {/* Summary bar */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-green-400 text-sm font-medium">{operational} Operational</span>
         </div>
         {degraded > 0 && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-4 py-2 flex items-center gap-2">
+          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
             <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-            <span className="text-yellow-400 text-sm">{degraded} Degraded</span>
+            <span className="text-yellow-400 text-sm font-medium">{degraded} Degraded</span>
           </div>
         )}
         {outage > 0 && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 flex items-center gap-2">
+          <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl">
             <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-            <span className="text-red-400 text-sm">{outage} Outage</span>
+            <span className="text-red-400 text-sm font-medium">{outage} Outage</span>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Services grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
         {services.map((service: Service) => (
           <ServiceCard key={service.id} service={service} />
         ))}

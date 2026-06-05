@@ -72,9 +72,15 @@ const scenarios = [
 ];
 
 const colorStyles: Record<string, string> = {
-  red: 'border-red-500/30 hover:border-red-500/60 bg-red-500/5',
-  orange: 'border-orange-500/30 hover:border-orange-500/60 bg-orange-500/5',
-  yellow: 'border-yellow-500/30 hover:border-yellow-500/60 bg-yellow-500/5',
+  red: 'border-red-500/30 hover:border-red-500/50 bg-red-500/5 hover:bg-red-500/10',
+  orange: 'border-orange-500/30 hover:border-orange-500/50 bg-orange-500/5 hover:bg-orange-500/10',
+  yellow: 'border-yellow-500/30 hover:border-yellow-500/50 bg-yellow-500/5 hover:bg-yellow-500/10',
+};
+
+const severityColor: Record<string, string> = {
+  critical: 'text-red-400',
+  high: 'text-orange-400',
+  medium: 'text-yellow-400',
 };
 
 const Simulator: React.FC = () => {
@@ -98,7 +104,6 @@ const Simulator: React.FC = () => {
     try {
       const serviceId = getServiceId(scenario.serviceTarget);
 
-      // Create incident
       await createIncident.mutateAsync({
         title: `[SIMULATED] ${scenario.name}`,
         description: scenario.description,
@@ -106,7 +111,6 @@ const Simulator: React.FC = () => {
         service_id: serviceId,
       });
 
-      // Create alert
       await createAlert.mutateAsync({
         title: `[SIMULATED] ${scenario.name} detected`,
         message: `Automated alert triggered by incident simulator: ${scenario.description}`,
@@ -114,7 +118,6 @@ const Simulator: React.FC = () => {
         service_id: serviceId,
       });
 
-      // Create logs
       await createLog.mutateAsync({
         level: 'error',
         message: `[SIMULATED] ${scenario.name}: ${scenario.description}`,
@@ -127,7 +130,6 @@ const Simulator: React.FC = () => {
         service_id: serviceId,
       });
 
-      // Update service status for outage scenarios
       if (scenario.id === 'api_outage' || scenario.id === 'database_failure') {
         if (serviceId) {
           await updateServiceStatus.mutateAsync({
@@ -162,60 +164,61 @@ const Simulator: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-white">Incident Simulator</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold text-white">Incident Simulator</h1>
         <p className="text-gray-400 text-sm mt-1">
           Simulate real-world incidents to test your monitoring and alerting systems
         </p>
       </div>
 
       {/* Warning banner */}
-      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-center gap-3">
-        <span className="text-yellow-400 text-lg">⚠️</span>
+      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 flex items-center gap-3">
+        <span className="text-yellow-400 text-xl flex-shrink-0">⚠️</span>
         <div>
           <p className="text-yellow-400 font-medium text-sm">Simulation Mode</p>
-          <p className="text-yellow-400/70 text-xs mt-0.5">
-            All simulated incidents are tagged with [SIMULATED] and will create real records in the database
+          <p className="text-yellow-400/60 text-xs mt-0.5">
+            All simulated incidents are tagged with [SIMULATED] and create real records in the database
           </p>
         </div>
       </div>
 
       {/* Scenarios grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
         {scenarios.map(scenario => (
           <div
             key={scenario.id}
-            className={`border rounded-xl p-5 transition-all duration-200 ${colorStyles[scenario.color]}`}
+            className={`border rounded-2xl p-5 transition-all duration-200 ${colorStyles[scenario.color]}`}
           >
             <div className="flex items-center gap-3 mb-3">
               <span className="text-2xl">{scenario.icon}</span>
               <div>
                 <h3 className="text-white font-semibold text-sm">{scenario.name}</h3>
-                <span className={`text-xs capitalize ${
-                  scenario.severity === 'critical' ? 'text-red-400' :
-                  scenario.severity === 'high' ? 'text-orange-400' :
-                  'text-yellow-400'
-                }`}>
+                <span className={`text-xs capitalize font-medium ${severityColor[scenario.severity]}`}>
                   {scenario.severity} severity
                 </span>
               </div>
             </div>
 
-            <p className="text-gray-400 text-sm mb-4">{scenario.description}</p>
+            <p className="text-gray-400 text-sm mb-4 leading-relaxed">{scenario.description}</p>
 
             <div className="flex items-center justify-between">
-              <span className="text-gray-500 text-xs">Target: {scenario.serviceTarget}</span>
+              <span className="text-gray-600 text-xs">→ {scenario.serviceTarget}</span>
               <button
                 onClick={() => runScenario(scenario)}
                 disabled={running === scenario.id}
-                className={`px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 ${
                   running === scenario.id
-                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30'
+                    ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 hover:border-blue-500/50'
                 }`}
               >
-                {running === scenario.id ? 'Running...' : 'Simulate'}
+                {running === scenario.id ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 border border-gray-500 border-t-blue-400 rounded-full animate-spin"></span>
+                    Running...
+                  </span>
+                ) : 'Simulate'}
               </button>
             </div>
           </div>
@@ -226,16 +229,16 @@ const Simulator: React.FC = () => {
       {results.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-white mb-4">Simulation Results</h2>
-          <div className="bg-gray-900/50 border border-gray-700/50 rounded-xl overflow-hidden">
-            <div className="divide-y divide-gray-700/30">
+          <div className="bg-gray-900/60 border border-gray-700/40 rounded-2xl overflow-hidden">
+            <div className="divide-y divide-gray-800/60">
               {results.map((result, index) => (
                 <div key={index} className="p-4 flex items-start gap-3">
-                  <span className="text-green-400 text-sm">✓</span>
-                  <div className="flex-1">
+                  <span className="text-green-400 text-sm flex-shrink-0 mt-0.5">✓</span>
+                  <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium">{result.scenario}</p>
                     <p className="text-gray-400 text-xs mt-0.5">{result.message}</p>
                   </div>
-                  <span className="text-gray-500 text-xs">{result.time}</span>
+                  <span className="text-gray-600 text-xs flex-shrink-0">{result.time}</span>
                 </div>
               ))}
             </div>
