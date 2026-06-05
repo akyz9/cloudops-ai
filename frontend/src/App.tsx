@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import Dashboard from './pages/Dashboard';
 import Services from './pages/Services';
 import Incidents from './pages/Incidents';
@@ -48,7 +49,7 @@ const App: React.FC = () => {
           {/* Main content */}
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             <Navbar onMenuClick={() => setSidebarOpen(true)} />
-            <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+            <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/services" element={<Services />} />
@@ -61,6 +62,9 @@ const App: React.FC = () => {
               </Routes>
             </main>
           </div>
+
+          {/* Bottom navigation - mobile only */}
+          <BottomNav />
         </div>
       </Router>
     </QueryClientProvider>
