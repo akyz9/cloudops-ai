@@ -46,6 +46,18 @@ A production-grade cloud operations platform built on AWS. A real-time infrastru
 ---
 
 ## Architecture
+User
+↓
+CloudFront (HTTPS, CDN)
+↓
+S3 (React Frontend)     EC2 (Node.js Backend)
+↓
+PostgreSQL
+↓
+CloudWatch Logs
+↓
+SNS Email Alerts
+
 
 ---
 
